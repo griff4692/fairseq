@@ -66,7 +66,10 @@ class Encoder:
         self.byte_decoder = {v: k for k, v in self.byte_encoder.items()}
         self.bpe_ranks = dict(zip(bpe_merges, range(len(bpe_merges))))
         self.cache = {}
-        added_toks = pd.read_csv(added_tok_fn)['tok'].tolist()
+        added_toks_df = pd.read_csv(added_tok_fn)
+        added_toks_df['len'] = added_toks_df['tok'].apply(len)
+        added_toks_df.sort_values(by='len', ascending=False, inplace=True)
+        added_toks = added_toks_df['tok'].tolist()
         added_toks_regex = list(set(list(map(lambda x: ' ?' + re.escape(x.strip(GPT_SPACE_CHAR)), added_toks))))
         sts = '|'.join(added_toks_regex)
         self.pat = re.compile(sts + r"""'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+""")
@@ -163,7 +166,7 @@ if __name__ == '__main__':
     vocab_fn = os.path.join(tok_dir, 'vocab.bpe')
 
     bpe_tokenizer = get_encoder(encoder_fn, vocab_fn)
-    x = '<p> this is a sample paragraph </p> . Another one phi_dt xphi_dtx phi_dt.'
+    x = 'phi_month_day_year'
     y = bpe_tokenizer.encode(x)
     print(y)
     z = bpe_tokenizer.decode(y)

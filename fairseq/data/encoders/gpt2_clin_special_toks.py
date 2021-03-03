@@ -93,7 +93,7 @@ def add_special_toks(encoder_fn, dict_fn, unigram_fn, vocab_fn, add_concepts=Fal
     nts = [create_note_tok(x) for x in MIMIC_NOTE_TYPES]
     SPECIAL_TOKS += nts
 
-    TAGS = ['d', 'h', 'p', 'e']
+    TAGS = ['d', 'h']  # , 'p', 'e']
     start_template = '<{}>'
     end_template = '</{}>'
 
