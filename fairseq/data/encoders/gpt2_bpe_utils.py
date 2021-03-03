@@ -5,8 +5,16 @@ Original source: https://github.com/openai/gpt-2/blob/master/src/encoder.py
 Original license: MIT
 """
 
-import json
 from functools import lru_cache
+import json
+import os
+import regex as re
+import sys
+
+import pandas as pd
+
+
+GPT_SPACE_CHAR = '\u0120'
 
 
 @lru_cache()
@@ -49,7 +57,8 @@ def get_pairs(word):
 
 
 class Encoder:
-    def __init__(self, encoder, bpe_merges, errors="replace"):
+    def __init__(self, encoder, bpe_merges, errors='replace',
+                 added_tok_fn=os.path.expanduser('~/fairseq/data/gpt2/added_toks.csv')):
         self.encoder = encoder
         self.decoder = {v: k for k, v in self.encoder.items()}
         self.errors = errors  # how to handle errors in decoding
@@ -57,20 +66,19 @@ class Encoder:
         self.byte_decoder = {v: k for k, v in self.byte_encoder.items()}
         self.bpe_ranks = dict(zip(bpe_merges, range(len(bpe_merges))))
         self.cache = {}
-
-        try:
-            import regex as re
-
-            self.re = re
-        except ImportError:
-            raise ImportError("Please install regex with: pip install regex")
-
-        # Should haved added re.IGNORECASE so BPE merges can happen for capitalized versions of contractions
-        self.pat = self.re.compile(
-            r"""'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
-        )
+        added_toks = pd.read_csv(added_tok_fn)['tok'].tolist()
+        added_toks_regex = list(set(list(map(lambda x: ' ?' + re.escape(x.strip(GPT_SPACE_CHAR)), added_toks))))
+        sts = '|'.join(added_toks_regex)
+        self.pat = re.compile(sts + r"""'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+""")
+        self.special_toks_exp = set(added_toks)
 
     def bpe(self, token):
+        if token in self.special_toks_exp:
+            return token
+        strippped_tok = token.strip(GPT_SPACE_CHAR)
+        if strippped_tok in self.special_toks_exp:
+            assert strippped_tok.startswith('<')  # is html character
+            return strippped_tok
         if token in self.cache:
             return self.cache[token]
         word = tuple(token)
@@ -113,18 +121,27 @@ class Encoder:
 
     def encode(self, text):
         bpe_tokens = []
-        for token in self.re.findall(self.pat, text):
-            token = "".join(self.byte_encoder[b] for b in token.encode("utf-8"))
-            bpe_tokens.extend(
-                self.encoder[bpe_token] for bpe_token in self.bpe(token).split(" ")
-            )
+        for token in re.findall(self.pat, text):
+            token = ''.join(self.byte_encoder[b] for b in token.encode('utf-8'))
+            for bpe_token in self.bpe(token).split(' '):
+                if bpe_token in self.encoder:
+                    bpe_tokens.append(self.encoder[bpe_token])
+                else:
+                    print('Warning. Skipping token --> {}'.format(bpe_token))
         return bpe_tokens
 
     def decode(self, tokens):
-        text = "".join([self.decoder.get(token, token) for token in tokens])
-        text = bytearray([self.byte_decoder[c] for c in text]).decode(
-            "utf-8", errors=self.errors
-        )
+        text = ''.join([self.decoder.get(token, token) for token in tokens])
+        start_space = text.startswith(GPT_SPACE_CHAR)
+        end_space = text.endswith(GPT_SPACE_CHAR)
+        html_adj_text = re.sub(r'Ġ*(</?[dhspe]>)Ġ*', r'Ġ\1Ġ', text)
+        # Remove leading and trailing spaces if added by previous line
+        if not start_space:
+            html_adj_text = html_adj_text.lstrip(GPT_SPACE_CHAR)
+        if not end_space:
+            html_adj_text = html_adj_text.rstrip(GPT_SPACE_CHAR)
+        html_adj_text = re.sub(r'Ġ+', r'Ġ', html_adj_text)
+        text = bytearray([self.byte_decoder[c] for c in html_adj_text]).decode('utf-8', errors=self.errors)
         return text
 
 
@@ -136,5 +153,19 @@ def get_encoder(encoder_json_path, vocab_bpe_path):
     bpe_merges = [tuple(merge_str.split()) for merge_str in bpe_data.split("\n")[1:-1]]
     return Encoder(
         encoder=encoder,
-        bpe_merges=bpe_merges,
+        bpe_merges=bpe_merges
     )
+
+
+if __name__ == '__main__':
+    tok_dir = os.path.expanduser('~/fairseq/data/gpt2')
+    encoder_fn = os.path.join(tok_dir, 'encoder_special_toks.json')
+    vocab_fn = os.path.join(tok_dir, 'vocab.bpe')
+
+    bpe_tokenizer = get_encoder(encoder_fn, vocab_fn)
+    x = '<p> this is a sample paragraph </p> . Another one phi_dt xphi_dtx phi_dt.'
+    y = bpe_tokenizer.encode(x)
+    print(y)
+    z = bpe_tokenizer.decode(y)
+    print(z)
+    assert x == z
