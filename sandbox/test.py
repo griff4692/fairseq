@@ -30,8 +30,8 @@ import numpy as np
 
 class Args:
     def __init__(self):
-        self.gpt2_encoder_json = os.path.expanduser('~/pores/data/gpt2/encoder_special_toks.json')
-        self.gpt2_vocab_bpe = os.path.expanduser('~/pores/data/gpt2/vocab.bpe')
+        self.gpt2_encoder_json = os.path.expanduser('~/fairseq/data/gpt2/encoder_special_toks.json')
+        self.gpt2_vocab_bpe = os.path.expanduser('~/fairseq/data/gpt2/vocab.bpe')
         self.bpe = 'gpt2'
 
         self.mask = 0.3
@@ -46,8 +46,9 @@ class Args:
 
 
 if __name__ == '__main__':
-    data_dir = os.path.expanduser('~/pores/data/bin')
-    dictionary = Dictionary.load(os.path.join(data_dir, 'dict.txt'))
+    bin_dir = os.path.expanduser('~/fairseq/data/bin')
+    vocab_dir = os.path.expanduser('~/fairseq/data/gpt2')
+    dictionary = Dictionary.load(os.path.join(vocab_dir, 'dict.txt'))
     source_dictionary = dictionary
     target_dictionary = dictionary
     args = Args()
@@ -60,7 +61,7 @@ if __name__ == '__main__':
     shorten_method = None
     shorten_data_split_list = ''
 
-    paths = utils.split_paths(data_dir)
+    paths = utils.split_paths(bin_dir)
     assert len(paths) > 0
     split = 'valid'
     data_path = paths[0]
@@ -110,7 +111,11 @@ if __name__ == '__main__':
     )
 
     bpe = encoders.build_bpe(args)
+    eoh = dictionary.indices[bpe.encode('</h>')]
 
+    ids = [50100, 1215, 1208, 1215, 180, 6799, 14686, 4, 2]
+    reg_ids = [dictionary[id] for id in ids[:-1]]
+    tokens = bpe.decode(' '.join(reg_ids))
     denoising_dataset = DenoisingDataset(
         dataset,
         dataset.sizes,
@@ -120,6 +125,8 @@ if __name__ == '__main__':
         shuffle=False,
         seed=seed,
         args=args,
+        eoh=eoh
     )
 
-    x = denoising_dataset[0]
+    for i in range(len(denoising_dataset)):
+        ex = denoising_dataset[i]
