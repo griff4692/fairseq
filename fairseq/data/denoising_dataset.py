@@ -121,6 +121,7 @@ class DenoisingDataset(FairseqDataset):
         seed,
         args,
         eos=None,
+        eoh=None,
         item_transform_func=None,
     ):
         self.dataset = dataset
@@ -138,13 +139,14 @@ class DenoisingDataset(FairseqDataset):
         self.rotate_ratio = args.rotate
         self.permute_sentence_ratio = args.permute_sentences
         self.eos = eos if eos is not None else vocab.eos()
+        self.eoh = eoh
         self.item_transform_func = item_transform_func
 
-        if args.bpe != "gpt2":
-            self.full_stop_index = self.vocab.eos()
-        else:
-            assert args.bpe == "gpt2"
-            self.full_stop_index = self.vocab.index("13")
+        # if args.bpe != "gpt2":
+        self.period_index = self.vocab.index('13')
+        # else:
+        #     assert args.bpe == "gpt2"
+        #     self.full_stop_index = self.vocab.index("13")  # this is a '.' token
 
         self.replace_length = args.replace_length
         if self.replace_length not in [-1, 0, 1]:
@@ -184,20 +186,26 @@ class DenoisingDataset(FairseqDataset):
         with data_utils.numpy_seed(self.seed, self.epoch, index):
             tokens = self.dataset[index]
             assert tokens[-1] == self.eos
-            source, target = tokens, tokens.clone()
+            split = torch.eq(tokens, self.eoh).nonzero(as_tuple=True)[0].item() + 1
+            source_prefix = tokens[:split]
+            source_body = tokens[split:]
+            target = source_body.clone()
 
             if self.permute_sentence_ratio > 0.0:
-                source = self.permute_sentences(source, self.permute_sentence_ratio)
+                source_body = self.permute_sentences(source_body, self.permute_sentence_ratio)
+
+            source_body = self.remove_extra_eos(source_body)
 
             if self.mask_ratio > 0:
-                source = self.add_whole_word_mask(source, self.mask_ratio)
+                source_body = self.add_whole_word_mask(source_body, self.mask_ratio)
 
             if self.insert_ratio > 0:
-                source = self.add_insertion_noise(source, self.insert_ratio)
+                source_body = self.add_insertion_noise(source_body, self.insert_ratio)
 
             if self.rotate_ratio > 0.0 and np.random.random() < self.rotate_ratio:
-                source = self.add_rolling_noise(source)
-        # there can additional changes to make:
+                source_body = self.add_rolling_noise(source_body)
+        # there can be additional changes to make:
+        source = torch.cat([source_prefix, source_body])
         if self.item_transform_func is not None:
             source, target = self.item_transform_func(source, target)
 
@@ -215,27 +223,30 @@ class DenoisingDataset(FairseqDataset):
     def __len__(self):
         return len(self.dataset)
 
+    def remove_extra_eos(self, X):
+        valid_mask = X != self.eos
+        valid_mask[-1] = True  # keep trailing eos token
+        return X[valid_mask.nonzero()].squeeze(-1)
+
     def permute_sentences(self, source, p=1.0):
-        full_stops = source == self.full_stop_index
-        # Pretend it ends with a full stop so last span is a sentence
-        full_stops[-2] = 1
+        full_stops = source == self.eos
 
         # Tokens that are full stops, where the previous token is not
-        sentence_ends = (full_stops[1:] * ~full_stops[:-1]).nonzero(as_tuple=False) + 2
+        sentence_ends = (full_stops[1:] * ~full_stops[:-1]).nonzero(as_tuple=False) + 1
         result = source.clone()
-
         num_sentences = sentence_ends.size(0)
+
         num_to_permute = math.ceil((num_sentences * 2 * p) / 2.0)
         substitutions = torch.randperm(num_sentences)[:num_to_permute]
         ordering = torch.arange(0, num_sentences)
         ordering[substitutions] = substitutions[torch.randperm(num_to_permute)]
 
-        # Ignore <bos> at start
-        index = 1
+        index = 0
         for i in ordering:
-            sentence = source[(sentence_ends[i - 1] if i > 0 else 1) : sentence_ends[i]]
-            result[index : index + sentence.size(0)] = sentence
+            sentence = source[(sentence_ends[i - 1] if i > 0 else 0): sentence_ends[i]]
+            result[index: index + sentence.size(0)] = sentence
             index += sentence.size(0)
+
         return result
 
     def word_starts(self, source):
@@ -243,7 +254,7 @@ class DenoisingDataset(FairseqDataset):
             is_word_start = self.mask_whole_word.gather(0, source)
         else:
             is_word_start = torch.ones(source.size())
-        is_word_start[0] = 0
+        # is_word_start[0] = 0
         is_word_start[-1] = 0
         return is_word_start
 

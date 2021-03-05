@@ -3,7 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-import logging
 import os
 
 from fairseq import utils
@@ -12,26 +11,19 @@ from fairseq.data import (
     AppendTokenDataset,
     DenoisingDataset,
     Dictionary,
-    IdDataset,
-    NestedDictionaryDataset,
-    NumelDataset,
-    PadDataset,
     PrependTokenDataset,
     StripTokenDataset,
     TokenBlockDataset,
     data_utils,
 )
 from fairseq.data.encoders.utils import get_whole_word_mask
-from fairseq.data.encoders.gpt2_bpe_utils import get_encoder
 from fairseq.data.shorten_dataset import maybe_shorten_dataset
-from fairseq.tasks import LegacyFairseqTask, register_task
-import numpy as np
 
 
 class Args:
     def __init__(self):
-        self.gpt2_encoder_json = os.path.expanduser('~/pores/data/gpt2/encoder_special_toks.json')
-        self.gpt2_vocab_bpe = os.path.expanduser('~/pores/data/gpt2/vocab.bpe')
+        self.gpt2_encoder_json = os.path.expanduser('~/fairseq/data/gpt2/encoder_special_toks.json')
+        self.gpt2_vocab_bpe = os.path.expanduser('~/fairseq/data/gpt2/vocab.bpe')
         self.bpe = 'gpt2'
 
         self.mask = 0.3
@@ -46,12 +38,15 @@ class Args:
 
 
 if __name__ == '__main__':
-    data_dir = os.path.expanduser('~/pores/data/bin')
-    dictionary = Dictionary.load(os.path.join(data_dir, 'dict.txt'))
+    bin_dir = os.path.expanduser('~/fairseq/data/bin')
+    vocab_dir = os.path.expanduser('~/fairseq/data/gpt2')
+    dictionary = Dictionary.load(os.path.join(vocab_dir, 'dict.txt'))
     source_dictionary = dictionary
     target_dictionary = dictionary
     args = Args()
     mask_length = 'span-poisson'
+
+    bpe = encoders.build_bpe(args)
 
     mask_idx = dictionary.add_symbol('<mask>')
     seed = 1992
@@ -60,7 +55,7 @@ if __name__ == '__main__':
     shorten_method = None
     shorten_data_split_list = ''
 
-    paths = utils.split_paths(data_dir)
+    paths = utils.split_paths(bin_dir)
     assert len(paths) > 0
     split = 'valid'
     data_path = paths[0]
@@ -110,7 +105,7 @@ if __name__ == '__main__':
     )
 
     bpe = encoders.build_bpe(args)
-
+    eoh = dictionary.indices[bpe.encode('</h>')]
     denoising_dataset = DenoisingDataset(
         dataset,
         dataset.sizes,
@@ -120,6 +115,8 @@ if __name__ == '__main__':
         shuffle=False,
         seed=seed,
         args=args,
+        eoh=eoh
     )
 
-    x = denoising_dataset[0]
+    for i in range(len(denoising_dataset)):
+        ex = denoising_dataset[i]
