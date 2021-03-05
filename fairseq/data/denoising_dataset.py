@@ -194,6 +194,8 @@ class DenoisingDataset(FairseqDataset):
             if self.permute_sentence_ratio > 0.0:
                 source_body = self.permute_sentences(source_body, self.permute_sentence_ratio)
 
+            source_body = self.remove_extra_eos(source_body)
+
             if self.mask_ratio > 0:
                 source_body = self.add_whole_word_mask(source_body, self.mask_ratio)
 
@@ -244,16 +246,15 @@ class DenoisingDataset(FairseqDataset):
             sentence = source[(sentence_ends[i - 1] if i > 0 else 0): sentence_ends[i]]
             result[index: index + sentence.size(0)] = sentence
             index += sentence.size(0)
-        result_filtered = self.remove_extra_eos(result)
 
-        return result_filtered
+        return result
 
     def word_starts(self, source):
         if self.mask_whole_word is not None:
             is_word_start = self.mask_whole_word.gather(0, source)
         else:
             is_word_start = torch.ones(source.size())
-        is_word_start[0] = 0
+        # is_word_start[0] = 0
         is_word_start[-1] = 0
         return is_word_start
 

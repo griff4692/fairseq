@@ -3,7 +3,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-import logging
 import os
 
 from fairseq import utils
@@ -12,20 +11,13 @@ from fairseq.data import (
     AppendTokenDataset,
     DenoisingDataset,
     Dictionary,
-    IdDataset,
-    NestedDictionaryDataset,
-    NumelDataset,
-    PadDataset,
     PrependTokenDataset,
     StripTokenDataset,
     TokenBlockDataset,
     data_utils,
 )
 from fairseq.data.encoders.utils import get_whole_word_mask
-from fairseq.data.encoders.gpt2_bpe_utils import get_encoder
 from fairseq.data.shorten_dataset import maybe_shorten_dataset
-from fairseq.tasks import LegacyFairseqTask, register_task
-import numpy as np
 
 
 class Args:
@@ -53,6 +45,8 @@ if __name__ == '__main__':
     target_dictionary = dictionary
     args = Args()
     mask_length = 'span-poisson'
+
+    bpe = encoders.build_bpe(args)
 
     mask_idx = dictionary.add_symbol('<mask>')
     seed = 1992
@@ -112,10 +106,6 @@ if __name__ == '__main__':
 
     bpe = encoders.build_bpe(args)
     eoh = dictionary.indices[bpe.encode('</h>')]
-
-    ids = [50100, 1215, 1208, 1215, 180, 6799, 14686, 4, 2]
-    reg_ids = [dictionary[id] for id in ids[:-1]]
-    tokens = bpe.decode(' '.join(reg_ids))
     denoising_dataset = DenoisingDataset(
         dataset,
         dataset.sizes,
