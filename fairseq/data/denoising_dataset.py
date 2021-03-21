@@ -142,7 +142,7 @@ class DenoisingDataset(FairseqDataset):
         self.eoh = eoh
         self.item_transform_func = item_transform_func
 
-        self.period_index = self.vocab.index('13')
+        # self.period_index = self.vocab.index('13')
 
         self.replace_length = args.replace_length
         if self.replace_length not in [-1, 0, 1]:

@@ -8,6 +8,7 @@ import os
 
 from fairseq import utils
 from fairseq.data import (
+    encoders,
     AppendTokenDataset,
     DenoisingDataset,
     Dictionary,
@@ -207,6 +208,9 @@ class DenoisingTask(LegacyFairseqTask):
             else None
         )
 
+        bpe = encoders.build_bpe(self.args)
+        eoh = self.dictionary.indices[bpe.encode('</h>')]
+
         self.datasets[split] = DenoisingDataset(
             dataset,
             dataset.sizes,
@@ -216,6 +220,7 @@ class DenoisingTask(LegacyFairseqTask):
             shuffle=self.args.shuffle_instance,
             seed=self.seed,
             args=self.args,
+            eoh=eoh
         )
         logger.info(
             "Split: {0}, Loaded {1} samples of denoising_dataset".format(

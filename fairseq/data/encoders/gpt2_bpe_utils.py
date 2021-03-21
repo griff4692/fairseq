@@ -9,7 +9,6 @@ from functools import lru_cache
 import json
 import os
 import regex as re
-import sys
 
 import pandas as pd
 
