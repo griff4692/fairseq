@@ -142,11 +142,7 @@ class DenoisingDataset(FairseqDataset):
         self.eoh = eoh
         self.item_transform_func = item_transform_func
 
-        # if args.bpe != "gpt2":
         self.period_index = self.vocab.index('13')
-        # else:
-        #     assert args.bpe == "gpt2"
-        #     self.full_stop_index = self.vocab.index("13")  # this is a '.' token
 
         self.replace_length = args.replace_length
         if self.replace_length not in [-1, 0, 1]:
@@ -246,7 +242,6 @@ class DenoisingDataset(FairseqDataset):
             sentence = source[(sentence_ends[i - 1] if i > 0 else 0): sentence_ends[i]]
             result[index: index + sentence.size(0)] = sentence
             index += sentence.size(0)
-
         return result
 
     def word_starts(self, source):
