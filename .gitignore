@@ -136,3 +136,4 @@ experimental/*
 wandb/
 
 data/bin/
+data/bin_small/
