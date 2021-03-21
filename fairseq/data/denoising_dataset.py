@@ -182,7 +182,7 @@ class DenoisingDataset(FairseqDataset):
         with data_utils.numpy_seed(self.seed, self.epoch, index):
             tokens = self.dataset[index]
             assert tokens[-1] == self.eos
-            split = torch.eq(tokens, self.eoh).nonzero(as_tuple=True)[0].item() + 1
+            split = torch.eq(tokens, self.eoh).nonzero(as_tuple=False)[0, 0]
             source_prefix = tokens[:split]
             source_body = tokens[split:]
             target = source_body.clone()
@@ -222,7 +222,7 @@ class DenoisingDataset(FairseqDataset):
     def remove_extra_eos(self, X):
         valid_mask = X != self.eos
         valid_mask[-1] = True  # keep trailing eos token
-        return X[valid_mask.nonzero()].squeeze(-1)
+        return X[valid_mask.nonzero(as_tuple=False)].squeeze(-1)
 
     def permute_sentences(self, source, p=1.0):
         full_stops = source == self.eos

@@ -209,7 +209,9 @@ class DenoisingTask(LegacyFairseqTask):
         )
 
         bpe = encoders.build_bpe(self.args)
-        eoh = self.dictionary.indices[bpe.encode('</h>')]
+        eoh = self.source_dictionary.indices[bpe.encode('</h>')]
+
+        print('End of section header id --> {}'.format(eoh))
 
         self.datasets[split] = DenoisingDataset(
             dataset,
@@ -277,3 +279,4 @@ class DenoisingTask(LegacyFairseqTask):
     def target_dictionary(self):
         """Return the target :class:`~fairseq.data.Dictionary`."""
         return self.dictionary
+
