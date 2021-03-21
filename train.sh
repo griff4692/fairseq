@@ -1,0 +1,53 @@
+python fairseq_cli/train.py /home/griffin/nlp/projects/kabupra/mimic/clinbart/bin \
+--wandb-project clin-lm	\
+--log-format json \
+--arch bart_large \
+--restore-file /home/griffin/weights/bart.large/model.pt \
+--train-subset train \
+--valid-subset valid \
+--save-dir /home/griffin/weights/bart.finetune/ \
+--best-checkpoint-metric loss \
+--task denoising \
+--max-tokens 1024 \
+--max-tokens-valid 1024 \
+--sample-break-mode=eos \
+--tokens-per-sample 512 \
+--seed=1992 \
+--log-format=json \
+--max-source-positions=1024 \
+--max-target-positions=1024 \
+--fp16 \
+--bpe gpt2 \
+--gpt2-encoder-json /home/griffin/fairseq/data/gpt2/encoder_special_toks.json \
+--gpt2-vocab-bpe /home/griffin/fairseq/data/gpt2/vocab.bpe \
+--pooler-activation-fn tanh \
+--share-all-embeddings \
+--layernorm-embedding \
+--share-decoder-input-output-embed \
+--optimizer adam \
+--num-workers 8 \
+--criterion cross_entropy \
+--encoder-learned-pos \
+--decoder-learned-pos \
+--warmup-updates 10000 \
+--skip-invalid-size-inputs-valid-test \
+--total-num-update=520000 \
+--save-interval 1 \
+--save-interval-updates=5000 \
+--keep-interval-updates 10 \
+--no-epoch-checkpoints \
+--lr [0.0005] \
+--lr-scheduler polynomial_decay \
+--weight-decay=0.01 \
+--power=1.0 \
+--mask=0.3 \
+--mask-random=0.1 \
+--poisson-lambda=3.0 \
+--permute-sentences=1.0 \
+--mask-length=span-poisson \
+--replace-length=1 \
+--insert=0.0 \
+--rotate=0.0 \
+--activation-fn=gelu \
+--adam-betas="(0.9, 0.999)" \
+--adam-eps=1e-06 \
