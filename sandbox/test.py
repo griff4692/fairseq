@@ -38,7 +38,7 @@ class Args:
 
 
 if __name__ == '__main__':
-    bin_dir = os.path.expanduser('~/fairseq/data/bin')
+    bin_dir = os.path.expanduser('~/fairseq/data/bin_new')
     vocab_dir = os.path.expanduser('~/fairseq/data/gpt2')
     dictionary = Dictionary.load(os.path.join(vocab_dir, 'dict.txt'))
     source_dictionary = dictionary

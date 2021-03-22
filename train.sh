@@ -1,42 +1,49 @@
+BART_RESTORE='/home/griffin/weights/bart.large/model.pt'
+BART_OUT_DIR='/home/griffin/weights/bart.finetune_2/'
+ENCODER_JSON='/home/griffin/fairseq/data/gpt2/encoder_special_toks.json'
+VOCAB_BPE='/home/griffin/fairseq/data/gpt2/vocab.bpe'
+
 python fairseq_cli/train.py /home/griffin/nlp/projects/kabupra/mimic/clinbart/bin \
+--restore-file $BART_RESTORE \
+--save-dir $BART_OUT_DIR \
+--gpt2-encoder-json $ENCODER_JSON \
+--gpt2-vocab-bpe $VOCAB_BPE \
 --wandb-project clin-lm	\
---log-format json \
---arch bart_large \
---restore-file /home/griffin/weights/bart.large/model.pt \
---train-subset train \
---valid-subset valid \
---save-dir /home/griffin/weights/bart.finetune/ \
---best-checkpoint-metric loss \
---task denoising \
---max-tokens 1024 \
---max-tokens-valid 1024 \
---sample-break-mode=eos \
---tokens-per-sample 512 \
---seed=1992 \
---log-format=json \
+--warmup-updates 506000 \
+--total-num-updates 620000 \
+--update-freq=[2] \
+--max-tokens=4096 \
+--max-tokens-valid 4096 \
+--tokens-per-sample=1024 \
 --max-source-positions=1024 \
 --max-target-positions=1024 \
+--save-interval 1 \
+--save-interval-updates=5000 \
+--keep-interval-updates 10 \
+--no-epoch-checkpoints \
+--adam-betas="(0.9, 0.98)" \
+--num-workers 8 \
+--lr [0.0005] \
+--log-format json \
+--arch bart_large \
+--train-subset train \
+--valid-subset valid \
+--best-checkpoint-metric loss \
+--task denoising \
+--sample-break-mode=eos \
+--seed=1992 \
+--log-format=json \
 --fp16 \
 --bpe gpt2 \
---gpt2-encoder-json /home/griffin/fairseq/data/gpt2/encoder_special_toks.json \
---gpt2-vocab-bpe /home/griffin/fairseq/data/gpt2/vocab.bpe \
 --pooler-activation-fn tanh \
 --share-all-embeddings \
 --layernorm-embedding \
 --share-decoder-input-output-embed \
 --optimizer adam \
---num-workers 8 \
 --criterion cross_entropy \
 --encoder-learned-pos \
 --decoder-learned-pos \
---warmup-updates 10000 \
 --skip-invalid-size-inputs-valid-test \
---total-num-update=520000 \
---save-interval 1 \
---save-interval-updates=5000 \
---keep-interval-updates 10 \
---no-epoch-checkpoints \
---lr [0.0005] \
 --lr-scheduler polynomial_decay \
 --weight-decay=0.01 \
 --power=1.0 \
@@ -49,5 +56,4 @@ python fairseq_cli/train.py /home/griffin/nlp/projects/kabupra/mimic/clinbart/bi
 --insert=0.0 \
 --rotate=0.0 \
 --activation-fn=gelu \
---adam-betas="(0.9, 0.999)" \
 --adam-eps=1e-06 \

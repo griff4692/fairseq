@@ -185,12 +185,14 @@ class DenoisingDataset(FairseqDataset):
             split = torch.eq(tokens, self.eoh).nonzero(as_tuple=False)[0, 0]
             source_prefix = tokens[:split]
             source_body = tokens[split:]
-            target = source_body.clone()
 
             if self.permute_sentence_ratio > 0.0:
                 source_body = self.permute_sentences(source_body, self.permute_sentence_ratio)
 
             source_body = self.remove_extra_eos(source_body)
+
+            target = source_body.clone()
+            target = torch.cat([target.new([self.vocab.bos()]), target])
 
             if self.mask_ratio > 0:
                 source_body = self.add_whole_word_mask(source_body, self.mask_ratio)
