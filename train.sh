@@ -3,18 +3,18 @@ BART_OUT_DIR='/home/griffin/weights/bart.finetune_2/'
 ENCODER_JSON='/home/griffin/fairseq/data/gpt2/encoder_special_toks.json'
 VOCAB_BPE='/home/griffin/fairseq/data/gpt2/vocab.bpe'
 
-python fairseq_cli/train.py /home/griffin/nlp/projects/kabupra/mimic/clinbart/bin \
+python fairseq_cli/train.py /home/griffin/bin \
 --restore-file $BART_RESTORE \
 --save-dir $BART_OUT_DIR \
 --gpt2-encoder-json $ENCODER_JSON \
 --gpt2-vocab-bpe $VOCAB_BPE \
 --wandb-project clin-lm	\
 --warmup-updates 506000 \
---total-num-updates 620000 \
+--total-num-update 700000 \
 --update-freq=[2] \
---max-tokens=4096 \
---max-tokens-valid 4096 \
---tokens-per-sample=1024 \
+--max-tokens=1024 \
+--max-tokens-valid 1024 \
+--tokens-per-sample=512 \
 --max-source-positions=1024 \
 --max-target-positions=1024 \
 --save-interval 1 \
