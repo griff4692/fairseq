@@ -38,7 +38,7 @@ class Args:
 
 
 if __name__ == '__main__':
-    bin_dir = os.path.expanduser('~/fairseq/data/bin_new')
+    bin_dir = os.path.expanduser('~/Desktop/bin')
     vocab_dir = os.path.expanduser('~/fairseq/data/gpt2')
     dictionary = Dictionary.load(os.path.join(vocab_dir, 'dict.txt'))
     source_dictionary = dictionary
@@ -119,4 +119,7 @@ if __name__ == '__main__':
     )
 
     for i in range(len(denoising_dataset)):
-        ex = denoising_dataset[i]
+        ex_stripped = denoising_dataset.remove_extra_eos(denoising_dataset.dataset[i])
+        n = len(ex_stripped)
+        if n > 512:
+            print(n, i)

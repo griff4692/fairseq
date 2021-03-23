@@ -182,7 +182,7 @@ class DenoisingDataset(FairseqDataset):
         with data_utils.numpy_seed(self.seed, self.epoch, index):
             tokens = self.dataset[index]
             assert tokens[-1] == self.eos
-            split = torch.eq(tokens, self.eoh).nonzero(as_tuple=False)[0, 0]
+            split = torch.eq(tokens, self.eoh).nonzero(as_tuple=False)[0, 0] + 1
             source_prefix = tokens[:split]
             source_body = tokens[split:]
 

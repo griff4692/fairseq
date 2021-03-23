@@ -1,7 +1,12 @@
 BART_RESTORE='/home/griffin/weights/bart.large/model.pt'
-BART_OUT_DIR='/home/griffin/weights/bart.finetune_2/'
+BART_OUT_DIR='/home/griffin/weights/bart.finetune/'
 ENCODER_JSON='/home/griffin/fairseq/data/gpt2/encoder_special_toks.json'
 VOCAB_BPE='/home/griffin/fairseq/data/gpt2/vocab.bpe'
+IN_DIR=/home/griffin/nlp/projects/kabupra/mimic/clinbart/bin
+LR=3e-5
+TOTAL_STEPS=200000
+WARMUP=10000
+
 
 python fairseq_cli/train.py /home/griffin/bin \
 --restore-file $BART_RESTORE \
@@ -9,9 +14,11 @@ python fairseq_cli/train.py /home/griffin/bin \
 --gpt2-encoder-json $ENCODER_JSON \
 --gpt2-vocab-bpe $VOCAB_BPE \
 --wandb-project clin-lm	\
---warmup-updates 506000 \
---total-num-update 700000 \
---update-freq=[2] \
+--reset-optimizer --reset-dataloader --reset-meters \
+--lr [$LR] \
+--warmup-updates $WARMUP \
+--total-num-updates $TOTAL_STEPS \
+--update-freq=[8] \
 --max-tokens=1024 \
 --max-tokens-valid 1024 \
 --tokens-per-sample=512 \
@@ -23,7 +30,6 @@ python fairseq_cli/train.py /home/griffin/bin \
 --no-epoch-checkpoints \
 --adam-betas="(0.9, 0.98)" \
 --num-workers 8 \
---lr [0.0005] \
 --log-format json \
 --arch bart_large \
 --train-subset train \
