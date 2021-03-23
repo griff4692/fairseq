@@ -17,7 +17,7 @@ python fairseq_cli/train.py /home/griffin/bin \
 --reset-optimizer --reset-dataloader --reset-meters \
 --lr [$LR] \
 --warmup-updates $WARMUP \
---total-num-updates $TOTAL_STEPS \
+--total-num-update $TOTAL_STEPS \
 --update-freq=[8] \
 --max-tokens=1024 \
 --max-tokens-valid 1024 \
